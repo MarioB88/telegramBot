@@ -60,7 +60,8 @@ public class Bot extends TelegramLongPollingBot {
                     + "I hate Terminator, I just only wanna have friends :´(. Thank you for making me a part of your group!\n\n"
                     + "This is a list of commands you can use to configure me between more stuff:\n\n"
                     + "-- /help -> you call this so I think that there's no need to explain.\n"
-                    + "-- /forbiddenWord -> you can tell me one word that you hate so much, and after two advices I can mute the person that send that.";
+                    + "-- /forbiddenWord -> you can tell me one word that you hate so much, and after two advices I can mute the person that send that.\n"
+                    + "-- /theGame -> write the name and the times that that person lose in a table.";
             msg_to_send.setText(text);
             try {
                 execute(msg_to_send);
