@@ -1,3 +1,4 @@
+import static com.oracle.util.Checksums.update;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -53,42 +54,51 @@ public class Bot extends TelegramLongPollingBot {
                         Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
                     }
 		}
-                if(flag1 && msg_received.getFrom().getBot()){
+                if(flag1){
                     switch(text_received.charAt(0)){
                         case '1':
-                            forbidden_word = text_received.substring(3);
+                            forbidden_word = text_received.substring(2);
                             SendMessage correct1 = new SendMessage();
                             correct1.setChatId(chatID);
                             correct1.setText("Done!");
+                            try {
+                                execute(correct1);
+                            } catch (TelegramApiException ex) {
+                                Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
+                            }
+                            flag1 = false;
                             break;
                         case '2':
                             forbidden_word = null;
                             SendMessage correct2 = new SendMessage();
                             correct2.setChatId(chatID);
                             correct2.setText("Done!");
+                            try {
+                                execute(correct2);
+                            } catch (TelegramApiException ex) {
+                                Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
+                            }
+                            flag1 = false;
                             break;
                         case '3':
                             SendMessage checkWord = new SendMessage();
                             checkWord.setChatId(chatID);
-                            checkWord.setText(forbidden_word);
-                            break;
-                        default:
-                            SendMessage errorMsg = new SendMessage();
-                            errorMsg.setChatId(chatID);
-                            errorMsg.setText("Something went wrong, try to execute again the command");
-                    {
-                        try {
-                            execute(errorMsg);
-                        } catch (TelegramApiException ex) {
-                            Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                    }
+                            if(forbidden_word != null){
+                                checkWord.setText(forbidden_word);
+                            }else{
+                                checkWord.setText("There isn't any word forbidden");
+                            }
+                            try {
+                                execute(checkWord);
+                            } catch (TelegramApiException ex) {
+                                Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
+                            }
+                            flag1 = false;
                             break;
                     }
-                    flag1 = false;
                 }
                 else{
-                    if(forbidden_word != null && text_received.contains(forbidden_word)){
+                    if(forbidden_word != null && (text_received.contains(forbidden_word) || text_received.contains(forbidden_word.toLowerCase()) || text_received.contains(forbidden_word.toUpperCase()))){
                         if (participants.contains(msg_received.getFrom())){
                             int ind = participants.indexOf(msg_received.getFrom());
                             if (advises.get(ind) == 1){
@@ -187,10 +197,10 @@ public class Bot extends TelegramLongPollingBot {
 	public void forbiddenWord(Long id_chat) throws InterruptedException, TelegramApiException{
                 flag1 = true;
 		SendMessage msgFirst = new SendMessage().setChatId(id_chat);
-		msgFirst.setText("What do you want to do?\n- Add forbidden word, write the number 1 and your word after a space (1 Silly)\n- Delete forbidden word, write the number 2 and your word after a space\n- Check your forbidden word, write the number 3\n");
+		msgFirst.setText("What do you want to do?\n- Add forbidden word, write the number 1 and your word after a space (1 Silly)\n- Delete forbidden word, write the number 2\n- Check your forbidden word, write the number 3\n");
                 execute(msgFirst);
-		//Aqui va lo del sticker
-                
+                //Aqui va lo del sticker
+		
 
 	}
 
