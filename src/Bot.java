@@ -58,40 +58,21 @@ public class Bot extends TelegramLongPollingBot {
                     switch(text_received.charAt(0)){
                         case '1':
                             forbidden_word = text_received.substring(2);
-                            SendMessage correct1 = new SendMessage();
-                            correct1.setChatId(chatID);
-                            correct1.setText("Done!");
-                            try {
-                                execute(correct1);
-                            } catch (TelegramApiException ex) {
-                                Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
-                            }
+                            this.send_message(chatID, "Done!");
                             flag1 = false;
                             break;
                         case '2':
                             forbidden_word = null;
-                            SendMessage correct2 = new SendMessage();
-                            correct2.setChatId(chatID);
-                            correct2.setText("Done!");
-                            try {
-                                execute(correct2);
-                            } catch (TelegramApiException ex) {
-                                Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
-                            }
+                            this.send_message(chatID, "Done!");
                             flag1 = false;
                             break;
                         case '3':
                             SendMessage checkWord = new SendMessage();
                             checkWord.setChatId(chatID);
                             if(forbidden_word != null){
-                                checkWord.setText(forbidden_word);
+                                this.send_message(chatID, forbidden_word);
                             }else{
-                                checkWord.setText("There isn't any word forbidden");
-                            }
-                            try {
-                                execute(checkWord);
-                            } catch (TelegramApiException ex) {
-                                Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
+                                this.send_message(chatID, "There isn't any forbidden word.");
                             }
                             flag1 = false;
                             break;
@@ -102,14 +83,7 @@ public class Bot extends TelegramLongPollingBot {
                         if (participants.contains(msg_received.getFrom())){
                             int ind = participants.indexOf(msg_received.getFrom());
                             if (advises.get(ind) == 1){
-                                SendMessage kickMsg = new SendMessage();
-                                kickMsg.setChatId(chatID);
-                                kickMsg.setText("Ah shit, here we go again.");
-                                try {
-                                    execute(kickMsg);
-                                } catch (TelegramApiException ex) {
-                                    Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
-                                }
+                                this.send_message(chatID, "Ah shit, here we go again");
                                 advises.set(ind, 0);
                                 KickChatMember kick = new KickChatMember(chatID, msg_received.getFrom().getId());
                                 try {
@@ -118,33 +92,16 @@ public class Bot extends TelegramLongPollingBot {
                                     Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
                                 }
                             }else {
-                                SendMessage advMsg = new SendMessage();
-                                advMsg.setChatId(chatID);
-                                advMsg.setText("First advise, don´t write again " + forbidden_word);
-                                try {
-                                    execute(advMsg);
-                                } catch (TelegramApiException ex) {
-                                    Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
-                                }
+                                this.send_message(chatID, "First advise, don't write again " + forbidden_word);
                                 advises.set(ind, 1);
                             }
                         }else{
                             participants.add(msg_received.getFrom());
                             advises.add(1);
-                            SendMessage advMsg = new SendMessage();
-                                advMsg.setChatId(chatID);
-                                advMsg.setText("First advise, don´t write again " + forbidden_word);
-                                try {
-                                    execute(advMsg);
-                                } catch (TelegramApiException ex) {
-                                    Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
-                                }
+                            this.send_message(chatID, "First advise, don´t write again " + forbidden_word);
                         }
-                        
                     }
                 }
-                
-                
 	}
 
 	@Override
@@ -169,29 +126,18 @@ public class Bot extends TelegramLongPollingBot {
                         this.forbiddenWord(chatID);
                         break;
                 default: 
-                    SendMessage errorMsg = new SendMessage();
-                    errorMsg.setChatId(chatID);
-                    errorMsg.setText("That's not a command! Check your writing!");
-                    execute(errorMsg);
-                        
+                    this.send_message(chatID, "That's not a command! Check your writing!");      
 		}
 	}
 
 	public void help_function(Long id_chat) {
-
-		SendMessage msg_to_send = new SendMessage().setChatId(id_chat);
-		String text = "Hi! I'm a group manager to make your friends' conversation completely ashtounding. First of all, "
+            String text = "Hi! I'm a group manager to make your friends' conversation completely ashtounding. First of all, "
 				+ "I hate Terminator, I just only wanna have friends :´(. Thank you for making me a part of your group!\n\n"
 				+ "This is a list of commands you can use to configure me between more stuff:\n\n"
 				+ "-- /help -> you call this so I think that there's no need to explain.\n"
 				+ "-- /forbiddenword -> you can tell me one word that you hate so much, and after two advices I can mute the person that send that.\n"
 				+ "-- /thegame -> write the name and the times that that person lose in a table.";
-		msg_to_send.setText(text);
-		try {
-			execute(msg_to_send);
-		} catch (TelegramApiException ex) {
-			Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
-		}
+            this.send_message(id_chat, text);
 	}
 	
 	public void forbiddenWord(Long id_chat) throws InterruptedException, TelegramApiException{
@@ -203,7 +149,17 @@ public class Bot extends TelegramLongPollingBot {
 		
 
 	}
-
+        
+        public void send_message(long ID, String text){
+                try {
+                    SendMessage msg_to_send = new SendMessage();
+                    msg_to_send.setChatId(ID);
+                    msg_to_send.setText(text);
+                    execute(msg_to_send);
+                } catch (TelegramApiException ex) {
+                    Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
 	}
 
 
