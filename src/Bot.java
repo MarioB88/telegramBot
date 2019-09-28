@@ -1,4 +1,10 @@
-import dnl.utils.text.table.TextTable;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.ArrayList;
@@ -6,23 +12,55 @@ import java.util.Vector;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChatMember;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.KickChatMember;
+import org.telegram.telegrambots.meta.api.objects.ChatMember;
 import org.telegram.telegrambots.meta.api.objects.User;
 
 public class Bot extends TelegramLongPollingBot {
 
     String forbidden_word = null;
     boolean flag1, flag2 = false;
-    ArrayList<User> participants = new ArrayList();
-    ArrayList<Integer> advises = new ArrayList();
-    ArrayList<User> members = new ArrayList();
-    ArrayList<Integer> contGame = new ArrayList();
     int contMsg = 0;
     String the_game = "he perdido";
+    ArrayList<Integer> participants = new ArrayList();
+    ArrayList<Integer> advises = new ArrayList();
+    ArrayList<Integer> members = new ArrayList();
+    ArrayList<Integer> contGame = new ArrayList();
+    
+    public Bot(){
+        File f = null;
+        FileReader fr = null;
+        BufferedReader br = null;
+        
+        try {
+            f = new File("C:\\Users\\Tito Berlih\\Desktop\\bot\\backup.txt");
+            fr = new FileReader(f);
+            br = new BufferedReader(fr);
+            
+            forbidden_word = br.readLine();
+            flag1 = Boolean.parseBoolean(br.readLine());
+            flag2 = Boolean.parseBoolean(br.readLine());
+            contMsg = Integer.parseInt(br.readLine());
+            the_game = br.readLine();
+            while(!br.readLine().equals("-")){
+                participants.add(Integer.parseInt(br.readLine()));
+                advises.add(Integer.parseInt(br.readLine()));
+            }
+            while(!br.readLine().equals("end")){
+                members.add(Integer.parseInt(br.readLine()));
+                contGame.add(Integer.parseInt(br.readLine()));
+            }
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
     
 	@Override
 	public void onUpdateReceived(final Update update) {
@@ -44,8 +82,8 @@ public class Bot extends TelegramLongPollingBot {
 		Message msg_received = update.getMessage();
                 String text_received = msg_received.getText();
                 Long chatID = msg_received.getChatId();
-                if(!members.contains(msg_received.getFrom())){
-                    members.add(msg_received.getFrom());
+                if(!members.contains(msg_received.getFrom().getId())){
+                    members.add(msg_received.getFrom().getId());
                     contGame.add(0);
                 }
                 
@@ -84,8 +122,8 @@ public class Bot extends TelegramLongPollingBot {
                 }
                 else{
                     if(forbidden_word != null && (text_received.contains(forbidden_word) || text_received.contains(forbidden_word.toLowerCase()) || text_received.contains(forbidden_word.toUpperCase()))){
-                        if (participants.contains(msg_received.getFrom())){
-                            int ind = participants.indexOf(msg_received.getFrom());
+                        if (participants.contains(msg_received.getFrom().getId())){
+                            int ind = participants.indexOf(msg_received.getFrom().getId());
                             if (advises.get(ind) == 1){
                                 this.send_message(chatID, "Ah shit, here we go again");
                                 advises.set(ind, 0);
@@ -100,7 +138,7 @@ public class Bot extends TelegramLongPollingBot {
                                 advises.set(ind, 1);
                             }
                         }else{
-                            participants.add(msg_received.getFrom());
+                            participants.add(msg_received.getFrom().getId());
                             advises.add(1);
                             this.send_message(chatID, "First advise, don´t write again " + forbidden_word);
                         }
@@ -108,12 +146,18 @@ public class Bot extends TelegramLongPollingBot {
                 }
                 if (flag2){
                     if(text_received.toLowerCase().contains(the_game)){
-                        int pos = members.indexOf(msg_received.getFrom());
+                        int pos = members.indexOf(msg_received.getFrom().getId());
                         String textGame = null;
                         contGame.set(pos, contGame.get(pos)+1);
                         for (int i = 0; i < members.size(); i++) {
-                            textGame = msg_received.getFrom().getFirstName() + " you suck! How is the competition going?\n\n";
-                            textGame = textGame + members.get(i).getFirstName() + " --> " + contGame.get(i) + " defeats";
+                            GetChatMember getMember = new GetChatMember().setChatId(chatID).setUserId(members.get(i));
+                            try {
+                                ChatMember chMember = execute(getMember);
+                                textGame = msg_received.getFrom().getFirstName() + " you suck! How is the competition going?\n\n";
+                                textGame = textGame + chMember.getUser().getFirstName() + " --> " + contGame.get(i) + " defeats";
+                            } catch (TelegramApiException ex) {
+                                Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
+                            }
                         }
                         this.send_message(chatID, textGame);
                     }
@@ -184,6 +228,43 @@ public class Bot extends TelegramLongPollingBot {
                 execute(msg_to_send);
             } catch (TelegramApiException ex) {
                 Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
+        public void backup(){
+            FileWriter f = null;
+            PrintWriter pw = null;
+            try {
+                f = new FileWriter("C:\\Users\\Tito Berlih\\Desktop\\bot\\backup.txt");
+                pw = new PrintWriter(f);
+                
+                pw.println(forbidden_word);
+                pw.println(flag1);
+                pw.println(flag2);
+                pw.println(contMsg);
+                pw.println(the_game);
+                for (int i = 0; i < participants.size(); i++) {
+                    pw.println(participants.get(i));
+                    pw.println(advises.get(i));
+                }
+                pw.println("-");
+                for (int i = 0; i < members.size(); i++) {
+                    pw.println(members.get(i));
+                    pw.println(contGame.get(i));
+                }
+                pw.println("end");
+                
+            } catch (IOException ex) {
+                Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            finally{
+                if(f != null){
+                    try {
+                        f.close();
+                    } catch (IOException ex) {
+                        Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
             }
         }
 }
