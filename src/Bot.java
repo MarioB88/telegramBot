@@ -1,28 +1,28 @@
-import static com.oracle.util.Checksums.update;
-import java.util.List;
+import dnl.utils.text.table.TextTable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import com.pengrad.telegrambot.UpdatesListener;
-import com.pengrad.telegrambot.request.GetUpdates;
-import com.pengrad.telegrambot.response.GetUpdatesResponse;
 import java.util.ArrayList;
-
+import java.util.Vector;
+import javax.swing.JTable;
+import javax.swing.table.DefaultTableModel;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import com.pengrad.telegrambot.response.BaseResponse;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.KickChatMember;
+import org.telegram.telegrambots.meta.api.objects.User;
 
 public class Bot extends TelegramLongPollingBot {
 
     String forbidden_word = null;
-    boolean flag1 = false;
-    ArrayList participants = new ArrayList();
+    boolean flag1, flag2 = false;
+    ArrayList<User> participants = new ArrayList();
     ArrayList<Integer> advises = new ArrayList();
-    int contMsg = 0;                  
+    ArrayList<User> members = new ArrayList();
+    ArrayList<Integer> contGame = new ArrayList();
+    int contMsg = 0;
+    String the_game = "he perdido";
     
 	@Override
 	public void onUpdateReceived(final Update update) {
@@ -44,6 +44,10 @@ public class Bot extends TelegramLongPollingBot {
 		Message msg_received = update.getMessage();
                 String text_received = msg_received.getText();
                 Long chatID = msg_received.getChatId();
+                if(!members.contains(msg_received.getFrom())){
+                    members.add(msg_received.getFrom());
+                    contGame.add(0);
+                }
                 
 		if (text_received.charAt(0) == '/') {
                     try {
@@ -102,6 +106,18 @@ public class Bot extends TelegramLongPollingBot {
                         }
                     }
                 }
+                if (flag2){
+                    if(text_received.toLowerCase().contains(the_game)){
+                        int pos = members.indexOf(msg_received.getFrom());
+                        String textGame = null;
+                        contGame.set(pos, contGame.get(pos)+1);
+                        for (int i = 0; i < members.size(); i++) {
+                            textGame = msg_received.getFrom().getFirstName() + " you suck! How is the competition going?\n\n";
+                            textGame = textGame + members.get(i).getFirstName() + " --> " + contGame.get(i) + " defeats";
+                        }
+                        this.send_message(chatID, textGame);
+                    }
+                }
 	}
 
 	@Override
@@ -125,6 +141,16 @@ public class Bot extends TelegramLongPollingBot {
                 case "/forbiddenword":
                         this.forbiddenWord(chatID);
                         break;
+                case "/thegame":
+                        if(!flag2){
+                            flag2 = true;
+                            this.send_message(chatID, "Let the war begin...");
+                            break;
+                        }else{
+                            flag2 = false;
+                            this.send_message(chatID, "What a coward!");
+                            break;
+                        }
                 default: 
                     this.send_message(chatID, "That's not a command! Check your writing!");      
 		}
@@ -136,7 +162,7 @@ public class Bot extends TelegramLongPollingBot {
 				+ "This is a list of commands you can use to configure me between more stuff:\n\n"
 				+ "-- /help -> you call this so I think that there's no need to explain.\n"
 				+ "-- /forbiddenword -> you can tell me one word that you hate so much, and after two advices I can mute the person that send that.\n"
-				+ "-- /thegame -> write the name and the times that that person lose in a table.";
+				+ "-- /thegame -> write the name and the times that people have lost.";
             this.send_message(id_chat, text);
 	}
 	
@@ -151,15 +177,15 @@ public class Bot extends TelegramLongPollingBot {
 	}
         
         public void send_message(long ID, String text){
-                try {
-                    SendMessage msg_to_send = new SendMessage();
-                    msg_to_send.setChatId(ID);
-                    msg_to_send.setText(text);
-                    execute(msg_to_send);
-                } catch (TelegramApiException ex) {
-                    Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
-                }
+            try {
+                SendMessage msg_to_send = new SendMessage();
+                msg_to_send.setChatId(ID);
+                msg_to_send.setText(text);
+                execute(msg_to_send);
+            } catch (TelegramApiException ex) {
+                Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
             }
-	}
+        }
+}
 
 
