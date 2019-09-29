@@ -18,19 +18,24 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.KickChatMember;
+import org.telegram.telegrambots.meta.api.methods.send.SendSticker;
 import org.telegram.telegrambots.meta.api.objects.ChatMember;
 import org.telegram.telegrambots.meta.api.objects.User;
+import sun.util.logging.resources.logging;
 
 public class Bot extends TelegramLongPollingBot {
 
     String forbidden_word = null;
     boolean flag1, flag2 = false;
     int contMsg = 0;
+    int contBackup = 0;
     String the_game = "he perdido";
     ArrayList<Integer> participants = new ArrayList();
     ArrayList<Integer> advises = new ArrayList();
     ArrayList<Integer> members = new ArrayList();
     ArrayList<Integer> contGame = new ArrayList();
+    
+    String line;
     
     public Bot(){
         File f = null;
@@ -47,16 +52,16 @@ public class Bot extends TelegramLongPollingBot {
             flag2 = Boolean.parseBoolean(br.readLine());
             contMsg = Integer.parseInt(br.readLine());
             the_game = br.readLine();
-            while(!br.readLine().equals("-")){
-                participants.add(Integer.parseInt(br.readLine()));
+            while(!(line = br.readLine()).equals("next")){
+                participants.add(Integer.parseInt(line));
                 advises.add(Integer.parseInt(br.readLine()));
             }
-            while(!br.readLine().equals("end")){
-                members.add(Integer.parseInt(br.readLine()));
+            while(!(line = br.readLine()).equals("end")){
+                members.add(Integer.parseInt(line));
                 contGame.add(Integer.parseInt(br.readLine()));
             }
         } catch (FileNotFoundException ex) {
-            Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("No se ha encontrado el fichero.\n Continúa la ejecución sin recuperar los datos.");
         } catch (IOException ex) {
             Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -78,7 +83,7 @@ public class Bot extends TelegramLongPollingBot {
 		 * try { // Se envía el mensaje execute(message); } catch (TelegramApiException
 		 * e) { e.printStackTrace(); }
 		 */
-
+                
 		Message msg_received = update.getMessage();
                 String text_received = msg_received.getText();
                 Long chatID = msg_received.getChatId();
@@ -86,8 +91,10 @@ public class Bot extends TelegramLongPollingBot {
                     members.add(msg_received.getFrom().getId());
                     contGame.add(0);
                 }
+                contMsg++;
+                contBackup++;
                 
-		if (text_received.charAt(0) == '/') {
+		if (!msg_received.hasSticker() && text_received.charAt(0) == '/') {
                     try {
                         this.commandHandler(msg_received);
                     } catch (InterruptedException ex) {
@@ -101,11 +108,13 @@ public class Bot extends TelegramLongPollingBot {
                         case '1':
                             forbidden_word = text_received.substring(2);
                             this.send_message(chatID, "Done!");
+                            this.send_sticker(chatID, "CAADAgADAwADmL-ADUV9BIgmMsLjFgQ");
                             flag1 = false;
                             break;
                         case '2':
                             forbidden_word = null;
                             this.send_message(chatID, "Done!");
+                            this.send_sticker(chatID, "CAADAgADAwADmL-ADUV9BIgmMsLjFgQ");
                             flag1 = false;
                             break;
                         case '3':
@@ -115,6 +124,7 @@ public class Bot extends TelegramLongPollingBot {
                                 this.send_message(chatID, forbidden_word);
                             }else{
                                 this.send_message(chatID, "There isn't any forbidden word.");
+                                this.send_sticker(chatID, "CAADAgAD-QADVp29CpVlbqsqKxs2FgQ");
                             }
                             flag1 = false;
                             break;
@@ -126,6 +136,7 @@ public class Bot extends TelegramLongPollingBot {
                             int ind = participants.indexOf(msg_received.getFrom().getId());
                             if (advises.get(ind) == 1){
                                 this.send_message(chatID, "Ah shit, here we go again");
+                                this.send_sticker(chatID, "CAADAgADCQADmL-ADRK8edwuVum2FgQ");
                                 advises.set(ind, 0);
                                 KickChatMember kick = new KickChatMember(chatID, msg_received.getFrom().getId());
                                 try {
@@ -135,17 +146,19 @@ public class Bot extends TelegramLongPollingBot {
                                 }
                             }else {
                                 this.send_message(chatID, "First advise, don't write again " + forbidden_word);
+                                this.send_sticker(chatID, "CAADAgADAgEAAladvQpO4myBy0Dk_xYE");
                                 advises.set(ind, 1);
                             }
                         }else{
                             participants.add(msg_received.getFrom().getId());
                             advises.add(1);
                             this.send_message(chatID, "First advise, don´t write again " + forbidden_word);
+                            this.send_sticker(chatID, "CAADAgADAgEAAladvQpO4myBy0Dk_xYE");
                         }
                     }
                 }
                 if (flag2){
-                    if(text_received.toLowerCase().contains(the_game)){
+                    if(!msg_received.hasSticker() && text_received.toLowerCase().contains(the_game)){
                         int pos = members.indexOf(msg_received.getFrom().getId());
                         String textGame = null;
                         contGame.set(pos, contGame.get(pos)+1);
@@ -160,8 +173,15 @@ public class Bot extends TelegramLongPollingBot {
                             }
                         }
                         this.send_message(chatID, textGame);
+                        this.send_sticker(chatID, "CAADAgADAwADr8ZRGug5n46ojYuhFgQ");
                     }
                 }
+                
+                if(contBackup == 25){
+                    this.backup();
+                    contBackup = 0;
+                }
+                
 	}
 
 	@Override
@@ -173,7 +193,7 @@ public class Bot extends TelegramLongPollingBot {
 	@Override
 	public String getBotToken() {
 		// Se devuelve el token que nos generó el BotFather de nuestro bot
-		return "Whoops";
+		return "714010306:AAGiZNEKesKuGn3kNhOShrPtDdN1K6IKt5M";
 	}
 
 	public void commandHandler(Message msg_received) throws TelegramApiException, InterruptedException {
@@ -189,6 +209,7 @@ public class Bot extends TelegramLongPollingBot {
                         if(!flag2){
                             flag2 = true;
                             this.send_message(chatID, "Let the war begin...");
+                            this.send_sticker(chatID, "CAADAgADAwADr8ZRGug5n46ojYuhFgQ");
                             break;
                         }else{
                             flag2 = false;
@@ -231,6 +252,15 @@ public class Bot extends TelegramLongPollingBot {
             }
         }
         
+        public void send_sticker(long ID, String stID){
+            try {
+                SendSticker sticker = new SendSticker().setChatId(ID).setSticker(stID);
+                execute(sticker);
+            } catch (TelegramApiException ex) {
+                Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
         public void backup(){
             FileWriter f = null;
             PrintWriter pw = null;
@@ -247,7 +277,7 @@ public class Bot extends TelegramLongPollingBot {
                     pw.println(participants.get(i));
                     pw.println(advises.get(i));
                 }
-                pw.println("-");
+                pw.println("next");
                 for (int i = 0; i < members.size(); i++) {
                     pw.println(members.get(i));
                     pw.println(contGame.get(i));
