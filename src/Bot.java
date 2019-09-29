@@ -193,7 +193,7 @@ public class Bot extends TelegramLongPollingBot {
 	@Override
 	public String getBotToken() {
 		// Se devuelve el token que nos generó el BotFather de nuestro bot
-		return "714010306:AAGiZNEKesKuGn3kNhOShrPtDdN1K6IKt5M";
+		return "Whoops";
 	}
 
 	public void commandHandler(Message msg_received) throws TelegramApiException, InterruptedException {
