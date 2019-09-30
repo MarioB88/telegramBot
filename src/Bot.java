@@ -69,21 +69,7 @@ public class Bot extends TelegramLongPollingBot {
     
 	@Override
 	public void onUpdateReceived(final Update update) {
-		// Esta función se invocará cuando nuestro bot reciba un mensaje
-
-		// Se obtiene el mensaje escrito por el usuario
-		/*
-		 * final String messageTextReceived = update.getMessage().getText(); // Se
-		 * obtiene el id de chat del usuario final long chatId =
-		 * update.getMessage().getChatId();
-		 * 
-		 * // Se crea un objeto mensaje SendMessage message = new
-		 * SendMessage().setChatId(chatId).setText(messageTextReceived);
-		 * 
-		 * try { // Se envía el mensaje execute(message); } catch (TelegramApiException
-		 * e) { e.printStackTrace(); }
-		 */
-                
+		
 		Message msg_received = update.getMessage();
                 String text_received = msg_received.getText();
                 Long chatID = msg_received.getChatId();
@@ -103,78 +89,16 @@ public class Bot extends TelegramLongPollingBot {
                         Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
                     }
 		}
+                
                 if(flag1){
-                    switch(text_received.charAt(0)){
-                        case '1':
-                            forbidden_word = text_received.substring(2);
-                            this.send_message(chatID, "Done!");
-                            this.send_sticker(chatID, "CAADAgADAwADmL-ADUV9BIgmMsLjFgQ");
-                            flag1 = false;
-                            break;
-                        case '2':
-                            forbidden_word = null;
-                            this.send_message(chatID, "Done!");
-                            this.send_sticker(chatID, "CAADAgADAwADmL-ADUV9BIgmMsLjFgQ");
-                            flag1 = false;
-                            break;
-                        case '3':
-                            SendMessage checkWord = new SendMessage();
-                            checkWord.setChatId(chatID);
-                            if(forbidden_word != null){
-                                this.send_message(chatID, forbidden_word);
-                            }else{
-                                this.send_message(chatID, "There isn't any forbidden word.");
-                                this.send_sticker(chatID, "CAADAgAD-QADVp29CpVlbqsqKxs2FgQ");
-                            }
-                            flag1 = false;
-                            break;
-                    }
+                    this.manage_forbWord(chatID, text_received);
                 }
                 else{
-                    if(forbidden_word != null && (text_received.contains(forbidden_word) || text_received.contains(forbidden_word.toLowerCase()) || text_received.contains(forbidden_word.toUpperCase()))){
-                        if (participants.contains(msg_received.getFrom().getId())){
-                            int ind = participants.indexOf(msg_received.getFrom().getId());
-                            if (advises.get(ind) == 1){
-                                this.send_message(chatID, "Ah shit, here we go again");
-                                this.send_sticker(chatID, "CAADAgADCQADmL-ADRK8edwuVum2FgQ");
-                                advises.set(ind, 0);
-                                KickChatMember kick = new KickChatMember(chatID, msg_received.getFrom().getId());
-                                try {
-                                    execute(kick);
-                                } catch (TelegramApiException ex) {
-                                    Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
-                                }
-                            }else {
-                                this.send_message(chatID, "First advise, don't write again " + forbidden_word);
-                                this.send_sticker(chatID, "CAADAgADAgEAAladvQpO4myBy0Dk_xYE");
-                                advises.set(ind, 1);
-                            }
-                        }else{
-                            participants.add(msg_received.getFrom().getId());
-                            advises.add(1);
-                            this.send_message(chatID, "First advise, don´t write again " + forbidden_word);
-                            this.send_sticker(chatID, "CAADAgADAgEAAladvQpO4myBy0Dk_xYE");
-                        }
-                    }
+                    this.check_forbWord(chatID, msg_received);
                 }
+                
                 if (flag2){
-                    if(!msg_received.hasSticker() && text_received.toLowerCase().contains(the_game)){
-                        int pos = members.indexOf(msg_received.getFrom().getId());
-                        String textGame = null;
-                        contGame.set(pos, contGame.get(pos)+1);
-                        for (int i = 0; i < members.size(); i++) {
-                            GetChatMember getMember = new GetChatMember().setChatId(chatID).setUserId(members.get(i));
-                            try {
-                                ChatMember chMember = execute(getMember);
-                                textGame = msg_received.getFrom().getFirstName() + " you suck! How is the competition going?\n\n";
-                                textGame = textGame + chMember.getUser().getFirstName() + " --> " + contGame.get(i) + " defeats";
-                            } catch (TelegramApiException ex) {
-                                Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-                        }
-                        this.send_message(chatID, textGame);
-                        this.send_sticker(chatID, "CAADAgADAwADr8ZRGug5n46ojYuhFgQ");
-                    }
+                    this.theGame(chatID, msg_received);
                 }
                 
                 if(contBackup == 25){
@@ -213,7 +137,17 @@ public class Bot extends TelegramLongPollingBot {
                             break;
                         }else{
                             flag2 = false;
-                            this.send_message(chatID, "What a coward!");
+                            String textGame = "What a coward! This is how was the competition going:\n\n";
+                            for (int i = 0; i < members.size(); i++) {
+                                GetChatMember getMember = new GetChatMember().setChatId(chatID).setUserId(members.get(i));
+                                try {
+                                    ChatMember chMember = execute(getMember);
+                                    textGame = textGame + chMember.getUser().getFirstName() + " --> " + contGame.get(i) + " defeats\n";
+                                } catch (TelegramApiException ex) {
+                                    Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
+                                }
+                            }
+                            this.send_message(chatID, textGame);
                             break;
                         }
                 default: 
@@ -259,6 +193,86 @@ public class Bot extends TelegramLongPollingBot {
             } catch (TelegramApiException ex) {
                 Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
             }
+        }
+        
+        public void manage_forbWord(long chatID, String text_received){
+            switch(text_received.charAt(0)){
+                        case '1':
+                            forbidden_word = text_received.substring(2);
+                            this.send_message(chatID, "Done!");
+                            this.send_sticker(chatID, "CAADAgADAwADmL-ADUV9BIgmMsLjFgQ");
+                            flag1 = false;
+                            break;
+                        case '2':
+                            forbidden_word = null;
+                            this.send_message(chatID, "Done!");
+                            this.send_sticker(chatID, "CAADAgADAwADmL-ADUV9BIgmMsLjFgQ");
+                            flag1 = false;
+                            break;
+                        case '3':
+                            SendMessage checkWord = new SendMessage();
+                            checkWord.setChatId(chatID);
+                            if(forbidden_word != null){
+                                this.send_message(chatID, forbidden_word);
+                            }else{
+                                this.send_message(chatID, "There isn't any forbidden word.");
+                                this.send_sticker(chatID, "CAADAgAD-QADVp29CpVlbqsqKxs2FgQ");
+                            }
+                            flag1 = false;
+                            break;
+                    }
+        }
+        
+        public void check_forbWord(long chatID, Message msg_received){
+            String text_received = msg_received.getText();
+            if(forbidden_word != null && (text_received.contains(forbidden_word) || text_received.contains(forbidden_word.toLowerCase()) || text_received.contains(forbidden_word.toUpperCase()))){
+                        if (participants.contains(msg_received.getFrom().getId())){
+                            int ind = participants.indexOf(msg_received.getFrom().getId());
+                            if (advises.get(ind) == 1){
+                                this.send_message(chatID, "Ah shit, here we go again");
+                                this.send_sticker(chatID, "CAADAgADCQADmL-ADRK8edwuVum2FgQ");
+                                advises.set(ind, 0);
+                                KickChatMember kick = new KickChatMember(chatID, msg_received.getFrom().getId());
+                                try {
+                                    execute(kick);
+                                } catch (TelegramApiException ex) {
+                                    Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
+                                }
+                            }else {
+                                this.send_message(chatID, "First advise, don't write again " + forbidden_word);
+                                this.send_sticker(chatID, "CAADAgADAgEAAladvQpO4myBy0Dk_xYE");
+                                advises.set(ind, 1);
+                            }
+                        }else{
+                            participants.add(msg_received.getFrom().getId());
+                            advises.add(1);
+                            this.send_message(chatID, "First advise, don´t write again " + forbidden_word);
+                            this.send_sticker(chatID, "CAADAgADAgEAAladvQpO4myBy0Dk_xYE");
+                        }
+                    }
+            
+        }
+        
+        public void theGame(long chatID, Message msg_received){
+            String text_received = msg_received.getText();
+            
+            if(!msg_received.hasSticker() && text_received.toLowerCase().contains(the_game)){
+                        int pos = members.indexOf(msg_received.getFrom().getId());
+                        String textGame = null;
+                        contGame.set(pos, contGame.get(pos)+1);
+                        for (int i = 0; i < members.size(); i++) {
+                            GetChatMember getMember = new GetChatMember().setChatId(chatID).setUserId(members.get(i));
+                            try {
+                                ChatMember chMember = execute(getMember);
+                                textGame = msg_received.getFrom().getFirstName() + " you suck! How is the competition going?\n\n";
+                                textGame = textGame + chMember.getUser().getFirstName() + " --> " + contGame.get(i) + " defeats\n";
+                            } catch (TelegramApiException ex) {
+                                Logger.getLogger(Bot.class.getName()).log(Level.SEVERE, null, ex);
+                            }
+                        }
+                        this.send_message(chatID, textGame);
+                        this.send_sticker(chatID, "CAADAgADAwADr8ZRGug5n46ojYuhFgQ");
+                    }
         }
         
         public void backup(){
